@@ -2,10 +2,12 @@ package logger
 
 import (
 	"fmt"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
+	"os"
 	"strings"
 	"sync"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var (
@@ -15,76 +17,26 @@ var (
 
 func Init(dir, serviceName, level string) {
 	once.Do(func() {
-		jsonEncoder := jsonEncoder()
-		core := zapcore.NewTee(getCores(level, jsonEncoder, dir, serviceName)...)
-		logger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1), zap.Fields(zap.String("service", serviceName)))
-		log = logger.Sugar()
+		log = zap.New(newCore(level, jsonEncoder(), logFileName(dir, serviceName)), zap.AddCaller(), zap.AddCallerSkip(1), zap.Fields(zap.String("service", serviceName))).Sugar()
 	})
 }
-
-func getLogFullPath(dir, serviceName, level string) string {
+func logFileName(dir, serviceName string) string {
 	if strings.HasSuffix(dir, "/") {
-		return fmt.Sprintf("%s%s.%s", dir, serviceName, level)
+		return fmt.Sprintf("%s%s.log", dir, serviceName)
 	}
-	return fmt.Sprintf("%s/%s.%s", dir, serviceName, level)
+	return fmt.Sprintf("%s/%s.log", dir, serviceName)
 }
-func getCores(level string, encoder zapcore.Encoder, d, s string) []zapcore.Core {
-	cores := make([]zapcore.Core, 0, 6)
-	l := logLevel(level)
-	if l <= zapcore.DebugLevel {
-		debugLevel := zap.LevelEnablerFunc(func(l zapcore.Level) bool {
-			return l >= zapcore.DebugLevel
-		})
-		f := getLogFullPath(d, s, "debug")
-		w := zapFileWriter(f)
-		cores = append(cores, zapcore.NewCore(encoder, zapcore.AddSync(w), debugLevel))
+func newCore(level string, encoder zapcore.Encoder, f string) zapcore.Core {
+	logFile, err := os.OpenFile(f, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
+	if err != nil {
+		panic(err)
 	}
-	if l <= zapcore.InfoLevel {
-		infoLevel := zap.LevelEnablerFunc(func(l zapcore.Level) bool {
-			return l >= zapcore.InfoLevel
-		})
-		f := getLogFullPath(d, s, "info")
-		w := zapFileWriter(f)
-		cores = append(cores, zapcore.NewCore(encoder, zapcore.AddSync(w), infoLevel))
-	}
-	if l <= zapcore.WarnLevel {
-		warnLevel := zap.LevelEnablerFunc(func(l zapcore.Level) bool {
-			return l >= zapcore.WarnLevel
-		})
-		f := getLogFullPath(d, s, "warn")
-		w := zapFileWriter(f)
-		cores = append(cores, zapcore.NewCore(encoder, zapcore.AddSync(w), warnLevel))
-	}
-	if l <= zapcore.ErrorLevel {
-		errorLevel := zap.LevelEnablerFunc(func(l zapcore.Level) bool {
-			return l >= zapcore.ErrorLevel
-		})
-		f := getLogFullPath(d, s, "error")
-		w := zapFileWriter(f)
-		cores = append(cores, zapcore.NewCore(encoder, zapcore.AddSync(w), errorLevel))
-	}
-	if l <= zapcore.PanicLevel {
-		panicLevel := zap.LevelEnablerFunc(func(l zapcore.Level) bool {
-			return l >= zapcore.PanicLevel
-		})
-		f := getLogFullPath(d, s, "panic")
-		w := zapFileWriter(f)
-		cores = append(cores, zapcore.NewCore(encoder, zapcore.AddSync(w), panicLevel))
-	}
-	if l <= zapcore.FatalLevel {
-		fatalLevel := zap.LevelEnablerFunc(func(l zapcore.Level) bool {
-			return l >= zapcore.FatalLevel
-		})
-		f := getLogFullPath(d, s, "fatal")
-		w := zapFileWriter(f)
-		cores = append(cores, zapcore.NewCore(encoder, zapcore.AddSync(w), fatalLevel))
-	}
-	return cores
+	return zapcore.NewCore(
+		encoder,
+		zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(logFile)),
+		logLevel(level),
+	)
 }
-
-//func GetLogger() *zap.SugaredLogger {
-//	return _log
-//}
 
 func Debug(args ...interface{}) {
 	log.Debug(args...)
@@ -117,14 +69,6 @@ func Error(args ...interface{}) {
 func Errorf(template string, args ...interface{}) {
 	log.Errorf(template, args...)
 }
-
-//func DPanic(args ...interface{}) {
-//	_log.DPanic(args...)
-//}
-//
-//func DPanicf(template string, args ...interface{}) {
-//	_log.DPanicf(template, args...)
-//}
 
 func Panic(args ...interface{}) {
 	log.Panic(args...)

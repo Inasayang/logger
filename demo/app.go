@@ -23,7 +23,7 @@ func main() {
 	sCh := make(chan os.Signal, 1)
 	signal.Notify(sCh, syscall.SIGUSR1)
 	go func() {
-		for _ = range sCh {
+		for range sCh {
 			reloadCh <- struct{}{}
 		}
 	}()

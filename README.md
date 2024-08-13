@@ -1,4 +1,5 @@
-# Usage:
+# Usage
+
 ```go
 import (
     "github.com/Inasayang/logger"
@@ -6,10 +7,12 @@ import (
 ```
 
 ## Copy and Truncate
+
 ```go
 logger.Init("/var/log/{app}", "{app}", "info",nil)
 ```
-```
+
+```bash
 cat << EOF > /etc/logrotate.d/{app}
 /var/log/{app}/*.log {
     rotate 7
@@ -21,6 +24,7 @@ EOF
 ```
 
 ## Rename and Create
+
 ```go
 reloadCh := make(chan struct{}, 1)
 logger.Init("/var/log/{app}", "{app}", "info",reloadCh)
@@ -28,7 +32,8 @@ logger.Init("/var/log/{app}", "{app}", "info",reloadCh)
 capture user signal
 ...
 ```
-```
+
+```bash
 cat << EOF > /etc/logrotate.d/{app}
 /var/log/{app}/*.log {
     rotate 7
@@ -42,9 +47,8 @@ cat << EOF > /etc/logrotate.d/{app}
 EOF
 ```
 
-
-```
+```bash
 logrotate -f /etc/logrotate.d/{app}
 ```
 
-- https://grafana.com/docs/loki/latest/clients/promtail/logrotation/
+- <https://grafana.com/docs/loki/latest/clients/promtail/logrotation/>

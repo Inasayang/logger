@@ -28,7 +28,7 @@ func Init(dir, app, level string, reloadCh <-chan struct{}) {
 	})
 }
 func reloadLogger(dir, app, level string, reloadCh <-chan struct{}) {
-	for _ = range reloadCh {
+	for range reloadCh {
 		preLog := log
 		core, closeFile := newCore(level, jsonEncoder(), logFileName(dir, app))
 		log = zap.New(core, opts(app)...).Sugar()

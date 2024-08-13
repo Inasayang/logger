@@ -14,6 +14,7 @@ var (
 	log         *zap.SugaredLogger
 	once        sync.Once
 	closeFileFn func()
+	atom        = zap.NewAtomicLevel()
 )
 
 func Init(dir, app, level string, reloadCh <-chan struct{}) {
@@ -57,12 +58,18 @@ func newCore(level string, encoder zapcore.Encoder, f string) (zapcore.Core, fun
 	var wss []zapcore.WriteSyncer
 	wss = append(wss, ws)
 	wss = append(wss, zapcore.AddSync(os.Stdout))
+	atom.SetLevel(logLevel(level))
 	return zapcore.NewCore(
 		encoder,
 		zapcore.NewMultiWriteSyncer(wss...),
-		logLevel(level),
+		atom,
 	), closeFile
 }
+
+func ChangeRuntimeLevel(level string) {
+	atom.SetLevel(logLevel(level))
+}
+
 func Debug(args ...any) {
 	log.Debug(args...)
 }

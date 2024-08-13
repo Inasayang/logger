@@ -23,7 +23,7 @@ EOF
 ## Rename and Create
 ```go
 reloadCh := make(chan struct{}, 1)
-logger.Init("/var/log/{app}", "{app}", "info",nil)
+logger.Init("/var/log/{app}", "{app}", "info",reloadCh)
 ...
 capture user signal
 ...
